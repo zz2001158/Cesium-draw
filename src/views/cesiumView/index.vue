@@ -139,6 +139,7 @@ export default {
 
     //清除鼠标拖拽事件
     clearDragFn(){
+      //添加了一行代码测试
       this.handler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_UP);
       this.handler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
       this.handler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOWN);
