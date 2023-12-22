@@ -102,6 +102,7 @@ export default {
         this.tempPoints = entity.id.polyline.positions._value;
         console.log(this.tempPoints, 'ddd');
       }
+      if(this.tooltip)  this.tooltip.remove();
       //右键删除
       this.handler.setInputAction((e) => {
         console.log(e.position.x, '屏幕坐标', this.tooltip);
@@ -157,14 +158,16 @@ export default {
         if(entity.id.name === '点'){
           entity.id.position = position;
         }else{
-          entity.id.polyline.positions = this.tempPoints.map(d => d = Cesium.Cartesian3.add(d, translationMatrix, new Cesium.Cartesian3()));
+          let endPositions = this.tempPoints.map(d => Cesium.Cartesian3.add(d, translationMatrix, new Cesium.Cartesian3()));
+          entity.id.polyline.positions = new Cesium.CallbackProperty((time, result) => {
+            return [...endPositions];
+          }, false)
         }
       }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
     },
 
     //清除鼠标拖拽事件
     clearDragFn(){
-      //添加了一行代码测试
       this.handler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_UP);
       this.handler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
       this.handler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOWN);
