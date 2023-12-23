@@ -101,14 +101,13 @@ export default {
       this.clearDragFn();
     },
     editEntity(entity) {
-      if(entity.id.name === '线'){
-        this.tempPoints = entity.id.polyline.positions._value;
-        console.log(this.tempPoints, 'ddd');
-      }
+      if(entity.id.name === '线')  this.tempPoints = entity.id.polyline.positions._value;
+      if(entity.id.name === '面')  this.tempPoints =  entity.id.polygon.hierarchy._value.positions;
       if(this.tooltip)  this.tooltip.remove();
       //右键删除
       this.handler.setInputAction((e) => {
-      if(this.viewer.scene.pick(e.position)){
+        this.selectEntity = this.viewer.scene.pick(e.position);
+      if(this.selectEntity){
         console.log(e.position.x, '屏幕坐标', this.tooltip);
         document.oncontextmenu = function (event) { event.preventDefault();};
         this.tooltip = document.createElement('div');
@@ -154,17 +153,15 @@ export default {
     
     startMoveEntity(entity){
       this.handler.setInputAction((e) => {
-        // let entityPosition = entity.id._position?._value;
-        // console.log(entity.id.name,entity.id, 'entity.position._value');
+        console.log(entity.id.id, 'entity');
         let position = this.windowPositionConvertCartesin3Fn(e.endPosition);
-        // let startPosition = this.windowPositionConvertCartesin3Fn(e.startPosition);
-        //  //计算平移向量
+        //  计算平移向量
         let translationMatrix = Cesium.Cartesian3.subtract(position,this.moveStartPosition, new Cesium.Cartesian3());
-
+        this.endPositions = this.tempPoints.map(d => Cesium.Cartesian3.add(d, translationMatrix, new Cesium.Cartesian3()));
         if(entity.id.name === '点'){
           entity.id.position = position;
         }else{
-          this.endPositions = this.tempPoints.map(d => Cesium.Cartesian3.add(d, translationMatrix, new Cesium.Cartesian3()));
+          // entity.id.polygon.hierarchy = this.endPositions;
           entity.id.polyline.positions = new Cesium.CallbackProperty((time, result) => {
             return [...this.endPositions];
           }, false)
@@ -179,6 +176,18 @@ export default {
            this.guideLines = this.getId();
            this.drawDashLine(this.guideLines, new Cesium.CallbackProperty((time, result) => {
             return  [end, this.tempPoints[this.tempPoints.length - 1]]
+           }, false))
+       },Cesium.ScreenSpaceEventType.MOUSE_MOVE)
+    },
+
+    //绘制引导面
+    drawGuidePolygonFn(){
+      this.handler.setInputAction((e) => {
+           if(this.guideLines)  this.removeEntityById(this.guideLines);
+           let end = this.windowPositionConvertCartesin3Fn(e.endPosition);
+           this.guideLines = this.getId();
+           this.drawPolygon(this.guideLines, new Cesium.CallbackProperty((time, result) => {
+            return  [end, ...this.tempPoints]
            }, false))
        },Cesium.ScreenSpaceEventType.MOUSE_MOVE)
     },
@@ -201,12 +210,14 @@ export default {
             let findItem = this.points.find(d => d.id === entity.id.id);
             if(findItem) findItem.position = position;
             dataManage.plugins.pointsManage.savePoint(this.points);
-          }else{
-            console.log('线');
+          }else if(entity.id.name === '线'){
             let findItem = this.lines.find(d => d.id === entity.id.id);
             if(findItem) findItem.position = this.endPositions;
-
             dataManage.plugins.linesManage.saveLines(this.lines);
+          }else{
+            let findItem = this.polygons.find(d => d.id === entity.id.id);
+            if(findItem) findItem.position = this.endPositions;
+            dataManage.plugins.polygonsManage.savePolygons(this.polygons);
           }
         }, Cesium.ScreenSpaceEventType.LEFT_UP);
     },
@@ -313,10 +324,10 @@ export default {
           this.$message.error("请至少绘制三个点");
         } else {
           let id = "p_" + new Date().getTime();
-          this.drawLine("tl_" + new Date().getTime(), [
-            this.tempPoints[this.tempPoints.length - 1],
-            this.tempPoints[0],
-          ]);
+          // this.drawLine("tl_" + new Date().getTime(), [
+          //   this.tempPoints[this.tempPoints.length - 1],
+          //   this.tempPoints[0],
+          // ]);
            this.tempLines.push("tl_" + new Date().getTime());
           this.drawPolygon(id, this.tempPoints);
           this.polygons.push({ id, position: this.tempPoints });
@@ -368,7 +379,7 @@ export default {
         name: "虚线",
         polyline: {
           positions: position,
-          width: 3.0,
+          width: 2.0,
           material: new Cesium.PolylineDashMaterialProperty({
             color: Cesium.Color.WHITE,
             dashLength: 20 //短划线长度
