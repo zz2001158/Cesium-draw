@@ -1,13 +1,13 @@
 <template>
   <div class="draw-box" >
     <div class="flex operate-box">
-      <el-dropdown v-if="!startDraw && !startEdit">
+      <el-dropdown v-if="!startDraw && !startEdit" @command="handleCommand">
         <el-button type="primary">绘制</el-button>
         <template #dropdown>
-          <el-dropdown-item type="primary" @click="startDrawPoint"
+          <el-dropdown-item type="primary" command="drawPoint"
             >绘制点</el-dropdown-item
           >
-          <el-dropdown-item type="primary" @click="startDrawLine"
+          <el-dropdown-item type="primary" command="drawLine"
             >绘制线</el-dropdown-item
           >
           <el-dropdown-item type="primary" @click="startDrawPolygon"
@@ -19,7 +19,7 @@
       <el-button type="primary" @click="startEditFn" style="margin-left: 30px;"  v-if="!startEdit && !startDraw">编辑</el-button>
       <el-button type="primary" style="margin-left: 30px;" @click="stopEdit" v-if=startEdit>停止编辑</el-button> 
     </div>
-    <div class="cesium-view" id="cesiumContainer"></div>
+    <div class="cesium-view" id="cesiumContainer" ref="cesiumMap"></div>
   </div>
 </template>
 
@@ -28,7 +28,9 @@ import * as Cesium from "cesium";
 import dataManage from "../../script/dataManage";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { getId } from './ids';
-import { FALSE } from "sass";
+import DrawPoint from "./drawPoint";
+import EditPoint from './editPoint';
+import DrawLine from './drawLine'
 export default {
   data() {
     return {
@@ -49,6 +51,7 @@ export default {
       tempLines: [],
       endPositions: [],
       guideLines: null,
+      cesiumMap: {},
     };
   },
   components: {},
@@ -67,41 +70,62 @@ export default {
         timeline: false, // 去掉时间线
         // fullscreenButton: false, // 去掉全屏按钮
         // selectionIndicator: false, // 去掉选择指示器,
-        selectionIndicator: true //去掉选中效果
+        selectionIndicator: false //去掉选中效果
       });
+      // this.handler = new Cesium.ScreenSpaceEventHandler(this.viewer.canvas);
+      this.cesiumMap.drawPoint = new DrawPoint(this.viewer);
+      this.cesiumMap.drawPoint.initPoint();
+      this.cesiumMap.editPoint = new EditPoint(this.viewer);
 
-      this.handler = new Cesium.ScreenSpaceEventHandler(this.viewer.canvas);
-     
+      this.cesiumMap.drawLine = new DrawLine(this.viewer);
+      this.cesiumMap.drawLine.initLine()
+      this.cesiumMap.drawLine.drawTempPoint = this.cesiumMap.drawPoint.drawPoint;
+      this.cesiumMap.drawLine.drawLineSuccessFn = this.stopDraw;
     },
-    startDrawPoint() {
-      // this.currentKey = "point";
+    handleCommand(command){
       this.startDraw = true;
-      this.handler.setInputAction((e) => {
-          let position = this.windowPositionConvertCartesin3Fn(e.position)
-          let id = "d_" + new Date().getTime();
-          this.points.push({ id, position });
-          dataManage.plugins.pointsManage.savePoint(this.points);
-          this.drawPoint(id, position);
-      }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+      this.cesiumMap[command].install();
     },
+    // startDrawPoint() {
+    //   // this.currentKey = "point";
+    //   this.startDraw = true;
+    //   this.handler.setInputAction((e) => {
+    //       let position = this.windowPositionConvertCartesin3Fn(e.position)
+    //       let id = "d_" + new Date().getTime();
+    //       this.points.push({ id, position });
+    //       dataManage.plugins.pointsManage.savePoint(this.points);
+    //       this.drawPoint(id, position);
+    //       this.handler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    //   }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    // },
     startEditFn(){
       this.startEdit = true;
-      this.handler.setInputAction((e) => {
-        if(this.tooltip)  this.tooltip.remove();                                                       
-        this.selectEntity = this.viewer.scene.pick(e.position);
-        if (this.selectEntity) {
-          this.viewer.scene.screenSpaceCameraController.enableRotate = false;
-          this.editEntity(this.selectEntity);
-        }
-          return
-      }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+      this.cesiumMap.editPoint.install();
+      // this.handler.setInputAction((e) => {
+      //   if(this.tooltip)  this.tooltip.remove();                                                       
+      //   this.selectEntity = this.viewer.scene.pick(e.position);
+      //   if (this.selectEntity) {
+      //     console.log(this.selectEntity, 'this.selectEntity');
+      //     this.viewer.scene.screenSpaceCameraController.enableRotate = false;
+      //     this.editEntity(this.selectEntity);
+      //   }
+      //     return
+      // }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
     },
     stopEdit(){
       this.startEdit = false;
-      this.clearDragFn();
+      // this.clearDragFn();
+      this.cesiumMap.editPoint.uninstall()
     },
     editEntity(entity) {
-      if(entity.id.name === '线')  this.tempPoints = entity.id.polyline.positions._value;
+      if(entity.id.name === '线')  {
+        this.tempPoints = entity.id.polyline.positions._value;
+        this.tempPoints.forEach((e) => {
+          let id = this.getId();
+          this.tempPointIds.push(id)
+          this.drawPoint(id, e)
+        })
+      }
       if(entity.id.name === '面')  this.tempPoints =  entity.id.polygon.hierarchy._value.positions;
       if(this.tooltip)  this.tooltip.remove();
       //右键删除
@@ -138,9 +162,9 @@ export default {
         this.endPositions = [];
         this.moveStartPosition = this.windowPositionConvertCartesin3Fn(e.position);
         //开始移动
-        this.startMoveEntity(entity);
+        this.startMoveEntity(this.viewer.scene.pick(e.position));
         //结束移动
-        this.endMoveEntity(entity);
+        this.endMoveEntity(this.viewer.scene.pick(e.position));
        
       }, Cesium.ScreenSpaceEventType.LEFT_DOWN);
       
@@ -153,19 +177,25 @@ export default {
     
     startMoveEntity(entity){
       this.handler.setInputAction((e) => {
-        console.log(entity.id.id, 'entity');
+        // console.log(this.selectEntity, 'entity');
         let position = this.windowPositionConvertCartesin3Fn(e.endPosition);
         //  计算平移向量
         let translationMatrix = Cesium.Cartesian3.subtract(position,this.moveStartPosition, new Cesium.Cartesian3());
         this.endPositions = this.tempPoints.map(d => Cesium.Cartesian3.add(d, translationMatrix, new Cesium.Cartesian3()));
         if(entity.id.name === '点'){
           entity.id.position = position;
+          let index = this.tempPointIds.findIndex(d => d === entity.id.id);
+          if(index !== -1) {
+            this.tempPoints[index] = position;
+            this.selectEntity.id.polyline.positions =  new Cesium.CallbackProperty((time, result) => { return [ ...this.tempPoints]}, false);
+          }
         }else{
           // entity.id.polygon.hierarchy = this.endPositions;
-          entity.id.polyline.positions = new Cesium.CallbackProperty((time, result) => {
-            return [...this.endPositions];
-          }, false)
+          // entity.id.polyline.positions = new Cesium.CallbackProperty((time, result) => {
+          //   return [...this.endPositions];
+          // }, false)
         }
+        // console.log(this.tempPoints, 'dd');
       }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
     },
     //绘制引导线
@@ -202,7 +232,8 @@ export default {
     endMoveEntity(entity){
       this.handler.setInputAction((e) => {
           // console.log('left_up');     
-          this.clearDragFn();
+          // this.clearDragFn();
+          this.handler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
           this.selectEntity = null;
           let position = this.windowPositionConvertCartesin3Fn(e.position);
           entity.id.position = position;
@@ -339,8 +370,11 @@ export default {
     },
     stopDraw() {
       this.startDraw = false;
-      this.handler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
-      this.handler.removeInputAction(Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+      this.removeAllDraw();
+    },
+    removeAllDraw(){
+      this.cesiumMap.drawPoint.uninstall();
+      this.cesiumMap.drawPoint.uninstall();
     },
     drawPoint(id, position) {
       let viewer = this.viewer;
@@ -403,14 +437,14 @@ export default {
         },
       });
     },
-    initPoint() {
-      this.points = dataManage.plugins.pointsManage.getPoints() || [];
-      if (this.points && this.points.length) {
-        for (let i = 0; i < this.points.length; i++) {
-          this.drawPoint(this.points[i].id, this.points[i].position,);
-        }
-      }
-    },
+    // initPoint() {
+    //   this.points = dataManage.plugins.pointsManage.getPoints() || [];
+    //   if (this.points && this.points.length) {
+    //     for (let i = 0; i < this.points.length; i++) {
+    //       this.drawPoint(this.points[i].id, this.points[i].position,);
+    //     }
+    //   }
+    // },
     initLine() {
       this.lines = dataManage.plugins.linesManage.getLines() || [];
       if (this.lines && this.lines.length) {
@@ -431,9 +465,9 @@ export default {
   },
   mounted() {
     this.init();
-    this.initPoint();
-    this.initLine();
-    this.initPolygon();
+    // this.initPoint();
+    // this.initLine();
+    // this.initPolygon();
   },
 };
 </script>
