@@ -30,7 +30,8 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { getId } from './ids';
 import DrawPoint from "./drawPoint";
 import EditPoint from './editPoint';
-import DrawLine from './drawLine'
+import DrawLine from './drawLine';
+import EditLine from './editLine';
 export default {
   data() {
     return {
@@ -72,7 +73,7 @@ export default {
         // selectionIndicator: false, // 去掉选择指示器,
         selectionIndicator: false //去掉选中效果
       });
-      // this.handler = new Cesium.ScreenSpaceEventHandler(this.viewer.canvas);
+      this.handler = new Cesium.ScreenSpaceEventHandler(this.viewer.canvas);
       this.cesiumMap.drawPoint = new DrawPoint(this.viewer);
       this.cesiumMap.drawPoint.initPoint();
       this.cesiumMap.editPoint = new EditPoint(this.viewer);
@@ -81,6 +82,9 @@ export default {
       this.cesiumMap.drawLine.initLine()
       this.cesiumMap.drawLine.drawTempPoint = this.cesiumMap.drawPoint.drawPoint;
       this.cesiumMap.drawLine.drawLineSuccessFn = this.stopDraw;
+
+      this.cesiumMap.editLine = new EditLine(this.viewer);
+      this.cesiumMap.editLine.drawTempPoint = this.cesiumMap.drawPoint.drawPoint;
     },
     handleCommand(command){
       this.startDraw = true;
@@ -100,17 +104,22 @@ export default {
     // },
     startEditFn(){
       this.startEdit = true;
-      this.cesiumMap.editPoint.install();
-      // this.handler.setInputAction((e) => {
-      //   if(this.tooltip)  this.tooltip.remove();                                                       
-      //   this.selectEntity = this.viewer.scene.pick(e.position);
-      //   if (this.selectEntity) {
-      //     console.log(this.selectEntity, 'this.selectEntity');
-      //     this.viewer.scene.screenSpaceCameraController.enableRotate = false;
-      //     this.editEntity(this.selectEntity);
-      //   }
-      //     return
-      // }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+      this.handler.setInputAction((e) => {
+        // if(this.tooltip)  this.tooltip.remove();                                                       
+        this.selectEntity = this.viewer.scene.pick(e.position);
+        if (this.selectEntity) {
+          let name = this.selectEntity.id.name;
+          if(name === '点'){
+            this.cesiumMap.editPoint.install();
+          }else if(name === '线') {
+            this.cesiumMap.editLine.install(this.selectEntity);
+          }
+          // console.log(this.selectEntity, 'this.selectEntity');
+          // this.viewer.scene.screenSpaceCameraController.enableRotate = false;
+          // this.editEntity(this.selectEntity);
+        }
+        //   return
+      }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
     },
     stopEdit(){
       this.startEdit = false;
