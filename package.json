@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@turf/turf": "^6.5.0",
     "cesium": "^1.112.0",
     "element-plus": "^2.4.3",
     "ids": "1.0.0",

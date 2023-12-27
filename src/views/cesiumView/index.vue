@@ -4,34 +4,15 @@
       <el-dropdown v-if="!startDraw && !startEdit" @command="handleCommand">
         <el-button type="primary">绘制</el-button>
         <template #dropdown>
-          <el-dropdown-item type="primary" command="drawPoint"
-            >绘制点</el-dropdown-item
-          >
-          <el-dropdown-item type="primary" command="drawLine"
-            >绘制线</el-dropdown-item
-          >
-          <el-dropdown-item type="primary" command="drawPolygon"
-            >绘制面</el-dropdown-item
-          >
+          <el-dropdown-item type="primary" command="drawPoint">绘制点</el-dropdown-item>
+          <el-dropdown-item type="primary" command="drawLine">绘制线</el-dropdown-item>    
+          <el-dropdown-item type="primary" command="drawPolygon">绘制面</el-dropdown-item>
         </template>
       </el-dropdown>
-      <el-button type="primary" @click="stopDraw" v-if="startDraw"
-        >停止绘制</el-button
-      >
-      <el-button
-        type="primary"
-        @click="startEditFn"
-        style="margin-left: 30px"
-        v-if="!startEdit && !startDraw"
-        >编辑</el-button
-      >
-      <el-button
-        type="primary"
-        style="margin-left: 30px"
-        @click="stopEdit"
-        v-if="startEdit"
-        >停止编辑</el-button
-      >
+      <el-button type="primary" @click="stopDraw" v-if="startDraw">停止绘制</el-button>
+      <el-button type="primary" @click="startEditFn" style="margin-left: 30px"
+        v-if="!startEdit && !startDraw">编辑</el-button>
+      <el-button type="primary" style="margin-left: 30px" @click="stopEdit" v-if="startEdit">停止编辑</el-button>
     </div>
     <div class="cesium-view" id="cesiumContainer" ref="cesiumMap"></div>
   </div>
@@ -60,7 +41,7 @@ export default {
     };
   },
   components: {},
-  created() {},
+  created() { },
   methods: {
     init() {
       this.viewer = new Cesium.Viewer("cesiumContainer", {
@@ -217,20 +198,24 @@ export default {
 <style scoped lang="scss">
 .draw-box {
   position: relative;
+
   .flex {
     display: flex;
   }
+
   .operate-box {
     position: absolute;
     top: 20px;
     left: 50px;
     z-index: 10;
   }
+
   .cesium-view {
     height: 100%;
     width: 100%;
   }
 }
+
 .tooltip {
   color: #fff;
   display: none;
