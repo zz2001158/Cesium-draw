@@ -122,6 +122,7 @@ class DrawPloygon {
       this.removeEntityById(e.id);
     });
     this.tempLines.forEach((e) => this.removeEntityById(e));
+    this.guidPolygon && this.removeEntityById(this.guidPolygon);
   }
 }
 

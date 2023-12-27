@@ -108,6 +108,8 @@ export default {
     stopEdit() {
       this.startEdit = false;
       this.handler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
+      this.handler.removeInputAction(Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+      this.removeAllEdit();
       this.removeAllEdit();
       this.tooltip && this.tooltip.remove();
     },

@@ -37,7 +37,7 @@ class EditPolygon {
   initEntity(entity) {
     this.polygons = dataManage.plugins.polygonsManage.getPolygons();
     this.findItemIndex = this.polygons.findIndex((d) => d.id === entity.id.id);
-    // console.log(findItem, entity);
+    console.log("object", this.findItemIndex, entity, this.polygons);
     if (this.findItemIndex !== -1) {
       this.tempPoints = this.polygons[this.findItemIndex].positions;
       this.tempPoints.forEach((e) => {
