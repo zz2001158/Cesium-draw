@@ -2,14 +2,15 @@ import * as Cesium from "cesium";
 import { getId } from "./ids";
 import dataManage from "../../script/dataManage";
 import { windowPositionConvertCartesin3Fn } from "../../script/utils";
-class DrawLine {
+class DrawPloygon {
   constructor(viewer) {
     this.viewer = viewer;
     this.initEvent();
     this.tempPoints = [];
     this.guideLines = null;
+    this.guidPolygon = null;
     this.tempLines = [];
-    this.lines = [];
+    this.polygons = [];
   }
 
   initEvent() {
@@ -19,7 +20,7 @@ class DrawLine {
   install() {
     this.tempPoints = [];
     this.handler.setInputAction(
-      (e) => this.startDrawLine(e),
+      (e) => this.startDraw(e),
       Cesium.ScreenSpaceEventType.LEFT_CLICK
     );
     this.handler.setInputAction(
@@ -27,7 +28,7 @@ class DrawLine {
       Cesium.ScreenSpaceEventType.MOUSE_MOVE
     );
     this.handler.setInputAction(
-      (e) => this.endDrawLine(e),
+      (e) => this.endDraw(e),
       Cesium.ScreenSpaceEventType.RIGHT_CLICK
     );
   }
@@ -36,71 +37,51 @@ class DrawLine {
     this.handler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
     this.handler.removeInputAction(Cesium.ScreenSpaceEventType.RIGHT_CLICK);
   }
-  drawLine(id, position) {
-    // console.log(id, position);
+  drawPolygon(id, position) {
     let viewer = this.viewer;
     return viewer.entities.add({
       id,
-      name: "线",
-      polyline: {
-        positions: position,
-        width: 5.0,
-        material: Cesium.Color.RED,
-        depthFailMaterial: Cesium.Color.RED,
+      name: "面",
+      polygon: {
+        hierarchy: position,
+        material: Cesium.Color.YELLOW.withAlpha(0.8),
         clampToGround: true,
       },
     });
   }
 
-  drawDashLine(id, position) {
-    let viewer = this.viewer;
-    return viewer.entities.add({
-      id,
-      name: "虚线",
-      polyline: {
-        positions: position,
-        width: 2.0,
-        material: new Cesium.PolylineDashMaterialProperty({
-          color: Cesium.Color.WHITE,
-          dashLength: 20, //短划线长度
-        }),
-        clampToGround: true,
-      },
-    });
-  }
-
-  initLine() {
-    this.lines = dataManage.plugins.linesManage.getLines() || [];
-    if (this.lines && this.lines.length) {
-      for (let i = 0; i < this.lines.length; i++) {
-        let positions = this.lines[i].positions.map((p) => p.position);
-        this.drawLine(this.lines[i].id, positions);
+  initPolygon() {
+    this.polygons = dataManage.plugins.polygonsManage.getPolygons() || [];
+    if (this.polygons && this.polygons.length) {
+      for (let i = 0; i < this.polygons.length; i++) {
+        let positions = this.polygons[i].positions.map((d) => d.position);
+        this.drawPolygon(this.polygons[i].id, positions);
       }
     }
   }
-  startDrawLine(e) {
-    console.log("点击");
+  startDraw(e) {
+    // console.log("点击");
     let position = windowPositionConvertCartesin3Fn(this.viewer, e.position);
     let id = getId();
     this.tempPoints.push({ id: "d_" + id, position: position });
     if (this.drawTempPoint) this.drawTempPoint("d_" + id, position);
     if (this.tempPoints.length > 1) {
+      this.tempLines.push("tl_" + id);
       this.drawLine("tl_" + id, [
         this.tempPoints[this.tempPoints.length - 2].position,
         this.tempPoints[this.tempPoints.length - 1].position,
       ]);
-      this.tempLines.push("tl_" + id);
     }
   }
   removeEntityById(id) {
     this.viewer.entities.removeById(id);
   }
   mouseMoveEvent(e) {
-    console.log("移动");
+    // console.log("移动");
     if (this.tempPoints.length > 0) {
       if (this.guideLines) this.removeEntityById(this.guideLines);
       let end = windowPositionConvertCartesin3Fn(this.viewer, e.endPosition);
-      this.guideLines = getId();
+      this.guideLines = "l" + getId();
       this.drawLine(
         this.guideLines,
         new Cesium.CallbackProperty((time, result) => {
@@ -108,16 +89,32 @@ class DrawLine {
         }, false)
       );
     }
+    if (this.tempPoints.length > 1) {
+      if (this.guidPolygon) this.removeEntityById(this.guidPolygon);
+      let end = windowPositionConvertCartesin3Fn(this.viewer, e.endPosition);
+      this.guidPolygon = "temp" + getId();
+      let positions = this.tempPoints.map((d) => d.position);
+      this.drawPolygon(
+        this.guidPolygon,
+        new Cesium.CallbackProperty((time, result) => {
+          return new Cesium.PolygonHierarchy(positions.concat(end));
+        }, false)
+      );
+    }
   }
-  endDrawLine(e) {
-    this.handler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
-    let lineId = "l_" + getId();
-    let linePositions = this.tempPoints.map((d) => d.position);
-    this.lines.push({ id: lineId, positions: this.tempPoints });
-    this.drawLine(lineId, linePositions);
-    dataManage.plugins.linesManage.saveLines(this.lines);
-    this.clearTempEntity();
-    if (this.drawLineSuccessFn) this.drawLineSuccessFn();
+  endDraw(e) {
+    if (this.tempPoints.length < 3) {
+      this.$message.error("请至少绘制三个点");
+    } else {
+      this.handler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+      let id = "p_" + getId();
+      let ploygonPositions = this.tempPoints.map((d) => d.position);
+      this.polygons.push({ id: id, positions: this.tempPoints });
+      this.drawPolygon(id, ploygonPositions);
+      dataManage.plugins.polygonsManage.savePolygons(this.polygons);
+      this.clearTempEntity();
+      if (this.drawSuccessFn) this.drawSuccessFn();
+    }
   }
 
   clearTempEntity() {
@@ -128,4 +125,4 @@ class DrawLine {
   }
 }
 
-export default DrawLine;
+export default DrawPloygon;

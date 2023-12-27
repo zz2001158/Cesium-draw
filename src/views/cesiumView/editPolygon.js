@@ -2,7 +2,7 @@ import * as Cesium from "cesium";
 import { getId } from "./ids";
 import dataManage from "../../script/dataManage";
 import { windowPositionConvertCartesin3Fn } from "../../script/utils";
-class EditLine {
+class EditPolygon {
   constructor(viewer) {
     this.viewer = viewer;
     this.initEvent();
@@ -10,7 +10,7 @@ class EditLine {
     this.entity = {};
     this.selectPoint = {}; //实体中被选中的点
     this.selectPointIndex = -1;
-    this.lines = [];
+    this.polygons = [];
     this.findItemIndex = -1; //选中的实体
   }
 
@@ -20,7 +20,7 @@ class EditLine {
 
   install(entity) {
     this.entity = entity;
-    this.initLine(entity);
+    this.initEntity(entity);
     this.handler.setInputAction(
       (e) => this.leftDownEvent(e),
       Cesium.ScreenSpaceEventType.LEFT_DOWN
@@ -34,14 +34,14 @@ class EditLine {
     this.tempPoints = [];
     this.entity = {};
   }
-  initLine(entity) {
-    this.lines = dataManage.plugins.linesManage.getLines();
-    this.findItemIndex = this.lines.findIndex((d) => d.id === entity.id.id);
+  initEntity(entity) {
+    this.polygons = dataManage.plugins.polygonsManage.getPolygons();
+    this.findItemIndex = this.polygons.findIndex((d) => d.id === entity.id.id);
     // console.log(findItem, entity);
     if (this.findItemIndex !== -1) {
-      this.tempPoints = this.lines[this.findItemIndex].positions;
+      this.tempPoints = this.polygons[this.findItemIndex].positions;
       this.tempPoints.forEach((e) => {
-        if (this.drawTempPoint) this.drawTempPoint(e.id, e.position);
+        this.drawTempPoint && this.drawTempPoint(e.id, e.position);
       });
     }
   }
@@ -64,8 +64,8 @@ class EditLine {
     console.log("up");
     this.viewer.scene.screenSpaceCameraController.enableRotate = true;
     this.handler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
-    this.lines[this.findItemIndex].positions = this.tempPoints;
-    dataManage.plugins.linesManage.saveLines(this.lines);
+    this.polygons[this.findItemIndex].positions = this.tempPoints;
+    dataManage.plugins.polygonsManage.savePolygons(this.polygons);
   }
   mouseMoveEvent(e) {
     if (this.selectPointIndex == -1) return;
@@ -74,9 +74,10 @@ class EditLine {
     this.selectPoint.id.position = position;
     this.tempPoints[this.selectPointIndex].position = position;
     let positions = this.tempPoints.map((d) => d.position);
-    this.entity.id.polyline.positions = new Cesium.CallbackProperty(
+    // console.log(this.entity, "this.entity");
+    this.entity.id.polygon.hierarchy = new Cesium.CallbackProperty(
       (time, result) => {
-        return [...positions];
+        return new Cesium.PolygonHierarchy(positions);
       },
       false
     );
@@ -89,4 +90,4 @@ class EditLine {
   }
 }
 
-export default EditLine;
+export default EditPolygon;

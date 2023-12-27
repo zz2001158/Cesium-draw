@@ -30,10 +30,6 @@ class EditPoint {
       (e) => this.updatePosition(e),
       Cesium.ScreenSpaceEventType.LEFT_UP
     );
-    this.handler.setInputAction(
-      (e) => this.deleteFn(e),
-      Cesium.ScreenSpaceEventType.RIGHT_CLICK
-    );
 
     // this.removeTooltip();
   }
@@ -41,7 +37,6 @@ class EditPoint {
     this.handler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOWN);
     this.handler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
     this.handler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_UP);
-    this.handler.removeInputAction(Cesium.ScreenSpaceEventType.RIGHT_CLICK);
   }
 
   selectEntityFn(e) {
@@ -69,44 +64,6 @@ class EditPoint {
     }
     dataManage.plugins.pointsManage.savePoint(points);
   }
-
-  //   deleteFn(e) {
-  //     this.selectEntity = this.viewer.scene.pick(e.position);
-  //     if (!this.selectEntity) return;
-  //     document.oncontextmenu = function (event) {
-  //       event.preventDefault();
-  //     };
-  //     this.tooltip = new Tooltip(e.position);
-  //     this.tooltip.onLoad();
-  //     this.tooltip.deleteEntity = this.removeEntity;
-  //   }
-
-  //   removeTooltip() {
-  //     if (this.tooltip) this.tooltip.remove();
-  //   }
-
-  //   removeEntity() {
-  //     console.log("object", this.selectEntity);
-  //     ElMessageBox.confirm("是否删除实体?", "警告", {
-  //       confirmButtonText: "确认",
-  //       cancelButtonText: "取消",
-  //       type: "warning",
-  //     })
-  //       .then(() => {
-  //         //删除点
-  //         console.log(this.selectEntity);
-  //         let points = dataManage.plugins.pointsManage.getPoints();
-  //         let newPoints = points.filter((d) => d.id === this.selectEntity.id.id);
-  //         dataManage.plugins.pointsManage.savePoint(newPoints);
-  //         this.tooltip.remove();
-  //         this.removeEntityById(this.selectEntity.id.id);
-  //       })
-  //       .catch((e) => this.tooltip.remove());
-  //   }
-
-  //   removeEntityById() {
-  //     this.viewer.entities.removeById(id);
-  //   }
 }
 
 export default EditPoint;
