@@ -79,13 +79,15 @@ class EditPolygon {
   }
   leftDownEvent(e) {
     this.selectPoint = this.viewer.scene.pick(e.position);
+    if (!this.selectPoint) return;
     this.selectPointIndex = this.tempPoints.findIndex(
       (i) => i.id === this.selectPoint.id.id
     );
-    if (this.selectPointIndex == -1) {
-      let auxiliaryPointIndex = this.auxiliaryPoints.findIndex(
-        (i) => i.id === this.selectPoint.id.id
-      );
+    let auxiliaryPointIndex = this.auxiliaryPoints.findIndex(
+      (i) => i.id === this.selectPoint.id.id
+    );
+    if (this.selectPointIndex == -1 && auxiliaryPointIndex !== -1) {
+      this.selectPointIndex = auxiliaryPointIndex + 1;
       this.tempPoints.splice(auxiliaryPointIndex + 1, 0, {
         id: this.auxiliaryPoints[auxiliaryPointIndex].id,
         position: this.auxiliaryPoints[auxiliaryPointIndex].position,

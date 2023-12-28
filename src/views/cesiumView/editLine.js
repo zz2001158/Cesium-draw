@@ -79,13 +79,15 @@ class EditLine {
 
   leftDownEvent(e) {
     this.selectPoint = this.viewer.scene.pick(e.position);
+    if (!this.selectPoint) return;
     this.selectPointIndex = this.tempPoints.findIndex(
       (i) => i.id === this.selectPoint.id.id
     );
-    if (this.selectPointIndex == -1) {
-      let auxiliaryPointIndex = this.auxiliaryPoints.findIndex(
-        (i) => i.id === this.selectPoint.id.id
-      );
+    let auxiliaryPointIndex = this.auxiliaryPoints.findIndex(
+      (i) => i.id === this.selectPoint.id.id
+    );
+    if (this.selectPointIndex == -1 && auxiliaryPointIndex !== -1) {
+      this.selectPointIndex = auxiliaryPointIndex + 1;
       this.tempPoints.splice(auxiliaryPointIndex + 1, 0, {
         id: this.auxiliaryPoints[auxiliaryPointIndex].id,
         position: this.auxiliaryPoints[auxiliaryPointIndex].position,
@@ -114,9 +116,9 @@ class EditLine {
     this.viewer.scene.screenSpaceCameraController.enableRotate = false;
     let position = windowPositionConvertCartesin3Fn(this.viewer, e.endPosition);
     this.selectPoint.id.position = position;
+    this.addAuxiliaryPointsFn();
     this.tempPoints[this.selectPointIndex].position = position;
     let positions = this.tempPoints.map((d) => d.position);
-    this.addAuxiliaryPointsFn();
     this.entity.id.polyline.positions = new Cesium.CallbackProperty(
       (time, result) => {
         return [...positions];
