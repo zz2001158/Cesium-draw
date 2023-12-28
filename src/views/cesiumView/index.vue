@@ -73,24 +73,20 @@ export default {
 
       this.cesiumMap.drawLine = new DrawLine(this.viewer);
       this.cesiumMap.drawLine.initLine();
-      this.cesiumMap.drawLine.drawTempPoint =
-        this.cesiumMap.drawPoint.drawPoint;
+      this.cesiumMap.drawLine.drawTempPoint = this.cesiumMap.drawPoint.drawPoint;
       this.cesiumMap.drawLine.drawLineSuccessFn = this.stopDraw;
 
       this.cesiumMap.editLine = new EditLine(this.viewer);
-      this.cesiumMap.editLine.drawTempPoint =
-        this.cesiumMap.drawPoint.drawPoint;
+      this.cesiumMap.editLine.drawTempPoint = this.cesiumMap.drawPoint.drawPoint;
 
       this.cesiumMap.drawPolygon = new DrawPloygon(this.viewer);
       this.cesiumMap.drawPolygon.initPolygon();
-      this.cesiumMap.drawPolygon.drawTempPoint =
-        this.cesiumMap.drawPoint.drawPoint;
+      this.cesiumMap.drawPolygon.drawTempPoint = this.cesiumMap.drawPoint.drawPoint;
       this.cesiumMap.drawPolygon.drawLine = this.cesiumMap.drawLine.drawLine;
       this.cesiumMap.drawPolygon.drawSuccessFn = this.stopDraw;
 
       this.cesiumMap.editPolygon = new EditPloygon(this.viewer);
-      this.cesiumMap.editPolygon.drawTempPoint =
-        this.cesiumMap.drawPoint.drawPoint;
+      this.cesiumMap.editPolygon.drawTempPoint = this.cesiumMap.drawPoint.drawPoint;
 
       this.tooltip && this.tooltip.remove();
     },
