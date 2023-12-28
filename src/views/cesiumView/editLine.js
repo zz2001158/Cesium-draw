@@ -16,7 +16,7 @@ class EditLine {
     this.selectPointIndex = -1;
     this.lines = [];
     this.findItemIndex = -1; //选中的实体
-    this.auxiliaryPoints = [];
+    this.auxiliaryPoints = []; //辅助点
   }
 
   initEvent() {
@@ -58,11 +58,9 @@ class EditLine {
     this.clearAuxiliaryPoints();
     // console.log(this.tempPoints, "this.tempPoints");
     for (let i = 0; i < this.tempPoints.length - 1; i++) {
-      console.log(i, i + 1, "i");
       let point1 = cartesianToCartographicDegreesFn(
         this.tempPoints[i].position
       );
-
       let point2 = cartesianToCartographicDegreesFn(
         this.tempPoints[i + 1].position
       );
@@ -84,6 +82,16 @@ class EditLine {
     this.selectPointIndex = this.tempPoints.findIndex(
       (i) => i.id === this.selectPoint.id.id
     );
+    if (this.selectPointIndex == -1) {
+      let auxiliaryPointIndex = this.auxiliaryPoints.findIndex(
+        (i) => i.id === this.selectPoint.id.id
+      );
+      this.tempPoints.splice(auxiliaryPointIndex + 1, 0, {
+        id: this.auxiliaryPoints[auxiliaryPointIndex].id,
+        position: this.auxiliaryPoints[auxiliaryPointIndex].position,
+      });
+      this.auxiliaryPoints.splice(auxiliaryPointIndex, 1);
+    }
     this.handler.setInputAction(
       (e) => this.mouseMoveEvent(e),
       Cesium.ScreenSpaceEventType.MOUSE_MOVE
@@ -98,6 +106,7 @@ class EditLine {
     this.viewer.scene.screenSpaceCameraController.enableRotate = true;
     this.handler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
     this.lines[this.findItemIndex].positions = this.tempPoints;
+
     dataManage.plugins.linesManage.saveLines(this.lines);
   }
   mouseMoveEvent(e) {

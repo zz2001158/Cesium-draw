@@ -54,11 +54,19 @@ export default {
         // navigationHelpButton: false, // 去掉导航帮助按钮
         animation: false, // 取消动画按钮
         timeline: false, // 去掉时间线
-        // fullscreenButton: false, // 去掉全屏按钮
+        fullscreenButton: false, // 去掉全屏按钮
         // selectionIndicator: false, // 去掉选择指示器,
         selectionIndicator: false, //去掉选中效果
       });
       this.handler = new Cesium.ScreenSpaceEventHandler(this.viewer.canvas);
+      this. viewer.camera.setView({
+        destination:Cesium.Cartesian3.fromDegrees(106.26667, 38.46667, 2000000.0),
+               orientation:{
+                  heading: 6.283185307179586,
+                  pitch: -1.5686521559334161,
+                  roll: 0,
+              }
+        });
       this.cesiumMap.drawPoint = new DrawPoint(this.viewer);
       this.cesiumMap.drawPoint.initPoint();
       this.cesiumMap.editPoint = new EditPoint(this.viewer);
@@ -183,6 +191,7 @@ export default {
           }
           this.tooltip.remove();
           this.removeEntityById(entityId);
+          this.removeAllEdit();
         })
         .catch((e) => this.tooltip.remove());
     },

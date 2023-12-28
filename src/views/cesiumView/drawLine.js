@@ -111,6 +111,7 @@ class DrawLine {
   }
   endDrawLine(e) {
     this.handler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    this.guideLines && this.removeEntityById(this.guideLines);
     let lineId = "l_" + getId();
     let linePositions = this.tempPoints.map((d) => d.position);
     this.lines.push({ id: lineId, positions: this.tempPoints });

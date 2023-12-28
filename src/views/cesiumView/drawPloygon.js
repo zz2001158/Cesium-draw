@@ -2,6 +2,7 @@ import * as Cesium from "cesium";
 import { getId } from "./ids";
 import dataManage from "../../script/dataManage";
 import { windowPositionConvertCartesin3Fn } from "../../script/utils";
+import { ElMessage, ElMessageBox } from "element-plus";
 class DrawPloygon {
   constructor(viewer) {
     this.viewer = viewer;
@@ -107,6 +108,7 @@ class DrawPloygon {
       this.$message.error("请至少绘制三个点");
     } else {
       this.handler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+      if (this.guideLines) this.removeEntityById(this.guideLines);
       let id = "p_" + getId();
       let ploygonPositions = this.tempPoints.map((d) => d.position);
       this.polygons.push({ id: id, positions: this.tempPoints });
