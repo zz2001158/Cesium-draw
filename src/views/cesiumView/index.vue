@@ -97,7 +97,6 @@ export default {
     getViewerHeight(){
       this.handler.setInputAction((wheelment) => {
         this.viewHeight = this.viewer.camera.positionCartographic.height;
-        console.log(this.viewHeight, 'this.viewer', this.viewHeight > 5500000);
         if(this.viewHeight > 47611.538969769725  ){
           this.overlay = true;
         }else{
