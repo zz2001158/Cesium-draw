@@ -8,9 +8,8 @@ class DrawPloygon {
     this.viewer = viewer;
     this.initEvent();
     this.tempPoints = [];
-    this.guideLines = null;
+    this.guideLine = null;
     this.guidPolygon = null;
-    this.tempLines = [];
     this.polygons = [];
   }
 
@@ -30,13 +29,15 @@ class DrawPloygon {
     );
     this.handler.setInputAction(
       (e) => this.endDraw(e),
-      Cesium.ScreenSpaceEventType.RIGHT_CLICK
+      Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK
     );
   }
   uninstall() {
     this.handler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
     this.handler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
-    this.handler.removeInputAction(Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+    this.handler.removeInputAction(
+      Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK
+    );
   }
   drawPolygon(id, position) {
     let viewer = this.viewer;
@@ -64,15 +65,10 @@ class DrawPloygon {
     // console.log("点击");
     let position = windowPositionConvertCartesin3Fn(this.viewer, e.position);
     let id = getId();
+    if (!this.guideLine) this.guideLine = "tl_" + id;
+    if (!this.guidPolygon) this.guidPolygon = "p_" + id;
     this.tempPoints.push({ id: "d_" + id, position: position });
     if (this.drawTempPoint) this.drawTempPoint("d_" + id, position);
-    if (this.tempPoints.length > 1) {
-      this.tempLines.push("tl_" + id);
-      this.drawLine("tl_" + id, [
-        this.tempPoints[this.tempPoints.length - 2].position,
-        this.tempPoints[this.tempPoints.length - 1].position,
-      ]);
-    }
   }
   removeEntityById(id) {
     this.viewer.entities.removeById(id);
@@ -80,20 +76,19 @@ class DrawPloygon {
   mouseMoveEvent(e) {
     // console.log("移动");
     if (this.tempPoints.length > 0) {
-      if (this.guideLines) this.removeEntityById(this.guideLines);
+      if (this.guideLine) this.removeEntityById(this.guideLine);
       let end = windowPositionConvertCartesin3Fn(this.viewer, e.endPosition);
-      this.guideLines = "l" + getId();
+      let linePositions = this.tempPoints.map((d) => d.position);
       this.drawLine(
-        this.guideLines,
+        this.guideLine,
         new Cesium.CallbackProperty((time, result) => {
-          return [end, this.tempPoints[this.tempPoints.length - 1].position];
+          return [...linePositions.concat(end)];
         }, false)
       );
     }
     if (this.tempPoints.length > 1) {
       if (this.guidPolygon) this.removeEntityById(this.guidPolygon);
       let end = windowPositionConvertCartesin3Fn(this.viewer, e.endPosition);
-      this.guidPolygon = "temp" + getId();
       let positions = this.tempPoints.map((d) => d.position);
       this.drawPolygon(
         this.guidPolygon,
@@ -108,11 +103,10 @@ class DrawPloygon {
       this.$message.error("请至少绘制三个点");
     } else {
       this.handler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
-      if (this.guideLines) this.removeEntityById(this.guideLines);
-      let id = "p_" + getId();
-      let ploygonPositions = this.tempPoints.map((d) => d.position);
-      this.polygons.push({ id: id, positions: this.tempPoints });
-      this.drawPolygon(id, ploygonPositions);
+      if (this.guideLine) this.removeEntityById(this.guideLine);
+      this.removeEntityById(this.tempPoints[this.tempPoints.length - 1].id);
+      this.tempPoints.splice(this.tempPoints.length - 1, 1);
+      this.polygons.push({ id: this.guidPolygon, positions: this.tempPoints });
       dataManage.plugins.polygonsManage.savePolygons(this.polygons);
       this.clearTempEntity();
       if (this.drawSuccessFn) this.drawSuccessFn();
@@ -123,8 +117,6 @@ class DrawPloygon {
     this.tempPoints.forEach((e) => {
       this.removeEntityById(e.id);
     });
-    this.tempLines.forEach((e) => this.removeEntityById(e));
-    this.guidPolygon && this.removeEntityById(this.guidPolygon);
   }
 }
 

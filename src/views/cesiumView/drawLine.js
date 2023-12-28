@@ -7,8 +7,7 @@ class DrawLine {
     this.viewer = viewer;
     this.initEvent();
     this.tempPoints = [];
-    this.guideLines = null;
-    this.tempLines = [];
+    this.guideLine = null;
     this.lines = [];
   }
 
@@ -28,13 +27,15 @@ class DrawLine {
     );
     this.handler.setInputAction(
       (e) => this.endDrawLine(e),
-      Cesium.ScreenSpaceEventType.RIGHT_CLICK
+      Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK
     );
   }
   uninstall() {
     this.handler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
     this.handler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
-    this.handler.removeInputAction(Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+    this.handler.removeInputAction(
+      Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK
+    );
   }
   drawLine(id, position) {
     // console.log(id, position);
@@ -82,15 +83,9 @@ class DrawLine {
     console.log("点击");
     let position = windowPositionConvertCartesin3Fn(this.viewer, e.position);
     let id = getId();
+    if (!this.guideLine) this.guideLine = "l_" + id;
     this.tempPoints.push({ id: "d_" + id, position: position });
     if (this.drawTempPoint) this.drawTempPoint("d_" + id, position);
-    if (this.tempPoints.length > 1) {
-      this.drawLine("tl_" + id, [
-        this.tempPoints[this.tempPoints.length - 2].position,
-        this.tempPoints[this.tempPoints.length - 1].position,
-      ]);
-      this.tempLines.push("tl_" + id);
-    }
   }
   removeEntityById(id) {
     this.viewer.entities.removeById(id);
@@ -98,24 +93,23 @@ class DrawLine {
   mouseMoveEvent(e) {
     console.log("移动");
     if (this.tempPoints.length > 0) {
-      if (this.guideLines) this.removeEntityById(this.guideLines);
+      if (this.guideLine) this.removeEntityById(this.guideLine);
       let end = windowPositionConvertCartesin3Fn(this.viewer, e.endPosition);
-      this.guideLines = getId();
+      let linePositions = this.tempPoints.map((d) => d.position);
       this.drawLine(
-        this.guideLines,
+        this.guideLine,
         new Cesium.CallbackProperty((time, result) => {
-          return [end, this.tempPoints[this.tempPoints.length - 1].position];
+          return [...linePositions.concat(end)];
         }, false)
       );
     }
   }
   endDrawLine(e) {
+    console.log("双击");
     this.handler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
-    this.guideLines && this.removeEntityById(this.guideLines);
-    let lineId = "l_" + getId();
-    let linePositions = this.tempPoints.map((d) => d.position);
-    this.lines.push({ id: lineId, positions: this.tempPoints });
-    this.drawLine(lineId, linePositions);
+    this.removeEntityById(this.tempPoints[this.tempPoints.length - 1].id);
+    this.tempPoints.splice(this.tempPoints.length - 1, 1);
+    this.lines.push({ id: this.guideLine, positions: this.tempPoints });
     dataManage.plugins.linesManage.saveLines(this.lines);
     this.clearTempEntity();
     if (this.drawLineSuccessFn) this.drawLineSuccessFn();
@@ -125,7 +119,6 @@ class DrawLine {
     this.tempPoints.forEach((e) => {
       this.removeEntityById(e.id);
     });
-    this.tempLines.forEach((e) => this.removeEntityById(e));
   }
 }
 
