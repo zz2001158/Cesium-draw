@@ -1,11 +1,14 @@
 <template>
   <div class="draw-box">
+    <div class="overlay" v-if="overlay">
+     <span>放大地图以编辑</span>
+    </div>
     <div class="flex operate-box">
       <el-dropdown v-if="!startDraw && !startEdit" @command="handleCommand">
         <el-button type="primary">绘制</el-button>
         <template #dropdown>
           <el-dropdown-item type="primary" command="drawPoint">绘制点</el-dropdown-item>
-          <el-dropdown-item type="primary" command="drawLine">绘制线</el-dropdown-item>    
+          <el-dropdown-item type="primary" command="drawLine">绘制线</el-dropdown-item>
           <el-dropdown-item type="primary" command="drawPolygon">绘制面</el-dropdown-item>
         </template>
       </el-dropdown>
@@ -38,6 +41,8 @@ export default {
       selectEntity: null,
       tooltip: null,
       cesiumMap: {},
+      viewHeight: null,
+      overlay: true,
     };
   },
   components: {},
@@ -59,43 +64,55 @@ export default {
         selectionIndicator: false, //去掉选中效果
       });
       this.handler = new Cesium.ScreenSpaceEventHandler(this.viewer.canvas);
-      this. viewer.camera.setView({
-        destination:Cesium.Cartesian3.fromDegrees(106.26667, 38.46667, 2000000.0),
-               orientation:{
-                  heading: 6.283185307179586,
-                  pitch: -1.5686521559334161,
-                  roll: 0,
-              }
-        });
+
+      this.getViewerHeight();
+
       this.cesiumMap.drawPoint = new DrawPoint(this.viewer);
       this.cesiumMap.drawPoint.initPoint();
       this.cesiumMap.editPoint = new EditPoint(this.viewer);
 
       this.cesiumMap.drawLine = new DrawLine(this.viewer);
       this.cesiumMap.drawLine.initLine();
-      this.cesiumMap.drawLine.drawTempPoint = this.cesiumMap.drawPoint.drawPoint;
+      this.cesiumMap.drawLine.drawTempPoint =
+        this.cesiumMap.drawPoint.drawPoint;
       this.cesiumMap.drawLine.drawLineSuccessFn = this.stopDraw;
 
       this.cesiumMap.editLine = new EditLine(this.viewer);
-      this.cesiumMap.editLine.drawTempPoint = this.cesiumMap.drawPoint.drawPoint;
+      this.cesiumMap.editLine.drawTempPoint =
+        this.cesiumMap.drawPoint.drawPoint;
 
       this.cesiumMap.drawPolygon = new DrawPloygon(this.viewer);
       this.cesiumMap.drawPolygon.initPolygon();
-      this.cesiumMap.drawPolygon.drawTempPoint = this.cesiumMap.drawPoint.drawPoint;
+      this.cesiumMap.drawPolygon.drawTempPoint =
+        this.cesiumMap.drawPoint.drawPoint;
       this.cesiumMap.drawPolygon.drawLine = this.cesiumMap.drawLine.drawLine;
       this.cesiumMap.drawPolygon.drawSuccessFn = this.stopDraw;
 
       this.cesiumMap.editPolygon = new EditPloygon(this.viewer);
-      this.cesiumMap.editPolygon.drawTempPoint = this.cesiumMap.drawPoint.drawPoint;
+      this.cesiumMap.editPolygon.drawTempPoint =
+        this.cesiumMap.drawPoint.drawPoint;
 
       this.tooltip && this.tooltip.remove();
     },
+    getViewerHeight(){
+      this.handler.setInputAction((wheelment) => {
+        this.viewHeight = this.viewer.camera.positionCartographic.height;
+        console.log(this.viewHeight, 'this.viewer', this.viewHeight > 5500000);
+        if(this.viewHeight > 47611.538969769725  ){
+          this.overlay = true;
+        }else{
+          this.overlay = false;
+        }
+      }, Cesium.ScreenSpaceEventType.WHEEL)
+    },
     handleCommand(command) {
       this.startDraw = true;
+      this.viewer.scene.screenSpaceCameraController.enableZoom = false;
       this.cesiumMap[command].install();
     },
     stopEdit() {
       this.startEdit = false;
+      this.viewer.scene.screenSpaceCameraController.enableZoom = true;
       this.handler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
       this.handler.removeInputAction(Cesium.ScreenSpaceEventType.RIGHT_CLICK);
       this.removeAllEdit();
@@ -104,6 +121,8 @@ export default {
     },
     stopDraw() {
       this.startDraw = false;
+      this.viewer.scene.screenSpaceCameraController.enableZoom = true;
+      this.getViewerHeight();
       this.removeAllDraw();
     },
     removeAllEdit() {
@@ -123,6 +142,7 @@ export default {
         this.tooltip && this.tooltip.remove();
         this.selectEntity = this.viewer.scene.pick(e.position);
         this.removeAllEdit();
+        this.viewer.scene.screenSpaceCameraController.enableZoom = false;
         if (this.selectEntity) {
           let name = this.selectEntity.id.name;
           if (name === "点") {
@@ -202,11 +222,31 @@ export default {
   mounted() {
     this.init();
   },
+  unmounted(){
+    this.handler.removeInputAction(Cesium.ScreenSpaceEventType.WHEEL);
+  }
 };
 </script>
 <style scoped lang="scss">
 .draw-box {
   position: relative;
+  .overlay{
+    position: absolute;
+    top: 20;
+    left: 0;
+    right: 0;
+    height: 60px;
+    // bottom: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 999;
+    display: flex;
+    justify-content: center;
+    align-items: center ;
+    >span{
+      color: #fff;
+      font-size: 25px;
+    }
+  }
 
   .flex {
     display: flex;
